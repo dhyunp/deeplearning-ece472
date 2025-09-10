@@ -43,13 +43,21 @@ def plot_fit(
     xs = np.linspace(0, 1, 10)
     xs = xs[:, np.newaxis]
     ax[0].plot(
-        xs, np.squeeze(model(jnp.asarray(xs))), "-", np.squeeze(data.x), data.y, "o"
+        xs,
+        np.squeeze(model(jnp.asarray(xs))),
+        "--",
+        xs,
+        np.sin(xs * 2 * np.pi),
+        "-",
+        np.squeeze(data.x),
+        data.y,
+        "o",
     )
 
     for i in range(model.num_features):
         phi = np.exp(-((xs - model.mu.value[i]) ** 2) / (model.sigma.value[i] ** 2))
         ax[1].plot(xs, phi, label=f"Basis {i + 1}")
-    ax[1].legend()
+    # ax[1].legend()
 
     plt.tight_layout()
 
