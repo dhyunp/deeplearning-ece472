@@ -18,7 +18,7 @@ class TrainingSettings(BaseModel):
 
     batch_size: int = 16
     num_iters: int = 300
-    learning_rate: float = 0.1
+    learning_rate: float = 0.05
 
 
 class PlottingSettings(BaseModel):

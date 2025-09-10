@@ -27,10 +27,8 @@ class NNXGaussianModel(nnx.Module):
         key = rngs.params()
         self.w = nnx.Param(jax.random.normal(key, (self.num_features, 1)))  # Weights
         self.mu = nnx.Param(jnp.linspace(0, 1, self.num_features))  # Mean
-        log.debug("Initialized mu", mu=self.mu.value)
-        self.sigma = nnx.Param(
-            jnp.array([0.1] * self.num_features).reshape(1, -1)
-        )  # SD
+        # log.debug("Initialized mu", mu=self.mu.value)
+        self.sigma = nnx.Param(jnp.array([0.1] * self.num_features))  # SD
         self.b = nnx.Param(jnp.zeros((1, 1)))  # Bias
 
     def __call__(self, x: jax.Array) -> jax.Array:
@@ -39,7 +37,7 @@ class NNXGaussianModel(nnx.Module):
             -((x - self.mu.value) ** 2) / (self.sigma.value**2)
         )  # exp((-(x - mu)^2) / sigma^2)
         y_hat = phi @ self.w.value + self.b.value
-        return y_hat
+        return jnp.squeeze(y_hat)
 
     @property
     def model(self) -> GaussianModel:

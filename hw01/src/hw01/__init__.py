@@ -22,7 +22,8 @@ def main() -> None:
 
     # JAX PRNG
     key = jax.random.PRNGKey(settings.random_seed)
-    np_rng = np.random.default_rng(np.array(key))
+    data_key, model_key = jax.random.split(key)
+    np_rng = np.random.default_rng(np.array(data_key))
 
     data = Data(
         rng=np_rng,
@@ -30,10 +31,10 @@ def main() -> None:
         num_samples=settings.data.num_samples,
         sigma=settings.data.sigma_noise,
     )
-    log.debug("Data generated", x=data.x, y=data.y)
+    # log.debug("Data generated", x=data.x, y=data.y)
 
     model = NNXGaussianModel(
-        rngs=nnx.Rngs(params=key), num_features=settings.data.num_features
+        rngs=nnx.Rngs(params=model_key), num_features=settings.data.num_features
     )
 
     log.debug("Initial model", model=model.model)

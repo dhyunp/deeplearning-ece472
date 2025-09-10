@@ -57,8 +57,9 @@ def plot_fit(
 
     for i in range(model.num_features):
         phi = np.exp(-((xs - model.mu.value[i]) ** 2) / (model.sigma.value[i] ** 2))
+        # log.debug("Basis function", i=i, mu=model.mu.value[i], sigma=model.sigma.value[i])
         ax[1].plot(xs, phi, label=f"Basis {i + 1}")
-    # ax[1].legend(loc="best", fontsize=8)
+    ax[1].legend(loc="best", fontsize=8)
 
     plt.tight_layout()
 

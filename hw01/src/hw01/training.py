@@ -39,6 +39,7 @@ def train(
     for i in bar:
         x_np, y_np = data.get_batch(np_rng, settings.batch_size)
         x, y = jnp.asarray(x_np), jnp.asarray(y_np)
+        # log.debug("Y value", y=y)
 
         loss = train_step(model, optimizer, x, y)
         # log.debug("Training step", step=i, loss=loss)
