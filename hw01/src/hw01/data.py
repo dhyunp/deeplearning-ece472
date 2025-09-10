@@ -18,7 +18,7 @@ class Data:
     def __post_init__(self, rng: np.random.Generator):
         """Generate synthetic data based on y = sin(2*pi*x)."""
         self.index = np.arange(self.num_samples)
-        self.x = rng.uniform(0.1, 0.9, size=(self.num_samples, self.num_features))
+        self.x = rng.uniform(0.1, 0.9, size=(self.num_samples, 1))
         clean_y = np.sin(self.x * 2 * np.pi)
         noise = rng.normal(0, self.sigma, size=clean_y.shape)
         noisy_y = clean_y + noise

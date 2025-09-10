@@ -41,7 +41,7 @@ def train(
         x, y = jnp.asarray(x_np), jnp.asarray(y_np)
 
         loss = train_step(model, optimizer, x, y)
-
+        # log.debug("Training step", step=i, loss=loss)
         bar.set_description(f"Loss @ {i} => {loss:.6f}")
         bar.refresh()
     log.info("Training finished")

@@ -3,7 +3,10 @@ from dataclasses import dataclass
 import jax
 import jax.numpy as jnp
 import numpy as np
+import structlog
 from flax import nnx
+
+log = structlog.get_logger()
 
 
 @dataclass
@@ -23,7 +26,8 @@ class NNXGaussianModel(nnx.Module):
         self.num_features = num_features
         key = rngs.params()
         self.w = nnx.Param(jax.random.normal(key, (self.num_features, 1)))  # Weights
-        self.mu = nnx.Param(jax.random.normal(key, (1, self.num_features)))  # Mean
+        self.mu = nnx.Param(jnp.linspace(0, 1, self.num_features))  # Mean
+        log.debug("Initialized mu", mu=self.mu.value)
         self.sigma = nnx.Param(
             jnp.array([0.1] * self.num_features).reshape(1, -1)
         )  # SD
@@ -34,7 +38,8 @@ class NNXGaussianModel(nnx.Module):
         phi = jnp.exp(
             -((x - self.mu.value) ** 2) / (self.sigma.value**2)
         )  # exp((-(x - mu)^2) / sigma^2)
-        return phi @ self.w.value + self.b.value
+        y_hat = phi @ self.w.value + self.b.value
+        return y_hat
 
     @property
     def model(self) -> GaussianModel:

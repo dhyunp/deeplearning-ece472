@@ -36,11 +36,11 @@ def plot_fit(
 
     ax[1].set_title("Bases for Fit")
     ax[1].set_xlabel("x")
-    ax[1].set_ylim(np.amin(data.y) * 1.5, np.amax(data.y) * 1.5)
+    ax[1].set_ylim(0, np.amax(data.y))
     h = ax[1].set_ylabel("y", labelpad=10)
     h.set_rotation(0)
 
-    xs = np.linspace(0, 1, 10)
+    xs = np.linspace(0, 1, 1000)
     xs = xs[:, np.newaxis]
     ax[0].plot(
         xs,
@@ -53,11 +53,12 @@ def plot_fit(
         data.y,
         "o",
     )
+    # log.info("y", y=np.squeeze(data.y), y_size=data.y.shape)
 
     for i in range(model.num_features):
         phi = np.exp(-((xs - model.mu.value[i]) ** 2) / (model.sigma.value[i] ** 2))
         ax[1].plot(xs, phi, label=f"Basis {i + 1}")
-    # ax[1].legend()
+    # ax[1].legend(loc="best", fontsize=8)
 
     plt.tight_layout()
 
