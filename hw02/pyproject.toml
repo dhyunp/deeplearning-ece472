@@ -1,0 +1,30 @@
+# pyproject.toml.jinja
+
+[project]
+name = "hw02"
+version = "0.1.0"
+description = "Binary classification on the spirals dataset using a multi-layer perceptron"
+readme = "README.md"
+authors = [
+    { name = "Donghyun Park", email = "donghyun.park@cooper.edu" }
+]
+requires-python = ">=3.13"
+dependencies = [
+    "structlog",
+    "rich",
+    "numpy",
+    "jax",
+    "flax",
+    "tqdm>=4.67.1",
+    "matplotlib>=3.10.6",
+    "pydantic>=2.11.9",
+    "pydantic-settings>=2.10.1",
+    "scikit-learn>=1.7.2",
+]
+
+[project.scripts]
+hw02 = "hw02:main"
+
+[build-system]
+requires = ["uv_build>=0.8.3,<0.9.0"]
+build-backend = "uv_build"
