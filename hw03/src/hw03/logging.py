@@ -35,7 +35,7 @@ def configure_logging():
     """Configure logging for the application."""
     log_settings = LoggingSettings()
     log_settings.output_dir.mkdir(parents=True, exist_ok=True)
-    log_path = log_settings.output_dir / "hw03.log"
+    log_path = log_settings.output_dir / "hw03.logfile"
     logging.basicConfig(
         format="%(message)s",
         level=logging.INFO,

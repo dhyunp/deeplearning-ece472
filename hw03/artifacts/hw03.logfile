@@ -1,0 +1,20 @@
+{"event": "Hello from hw03!", "logger": "hw03", "level": "info", "timestamp": "2025-09-24T07:51:58.157828Z"}
+{"settings": {"debug": false, "random_seed": 31415, "data": {"percent_train": 90}, "model": {"input_height": 28, "input_width": 28, "input_depth": 1, "layer_depths": [32, 64, 128], "layer_kernel_sizes": [[5, 5], [3, 3], [3, 3]], "num_classes": 10}, "training": {"batch_size": 64, "epochs": 500, "learning_rate": 0.01, "l2_reg": 0.01}, "plotting": {"figsize": [10, 10], "dpi": 200, "output_dir": "PosixPath('hw03/artifacts')"}, "logging": {"log_level": "INFO", "log_format": "plain", "log_output": "stdout", "output_dir": "PosixPath('hw03/artifacts')"}}, "event": "Settings loaded", "logger": "hw03", "level": "info", "timestamp": "2025-09-24T07:51:58.158261Z"}
+Unable to initialize backend 'tpu': INTERNAL: Failed to open libtpu.so: libtpu.so: cannot open shared object file: No such file or directory
+An NVIDIA GPU may be present on this machine, but a CUDA-enabled jaxlib is not installed. Falling back to cpu.
+Load dataset info from /home/dhyunp/tensorflow_datasets/mnist/3.0.1
+Creating a tf.data.Dataset reading 1 files located in folders: /home/dhyunp/tensorflow_datasets/mnist/3.0.1.
+Creating a tf.data.Dataset reading 1 files located in folders: /home/dhyunp/tensorflow_datasets/mnist/3.0.1.
+Constructing tf.data.Dataset mnist for split ['train[:90%]', 'train[90%:]'], from /home/dhyunp/tensorflow_datasets/mnist/3.0.1
+Load dataset info from /home/dhyunp/tensorflow_datasets/mnist/3.0.1
+Creating a tf.data.Dataset reading 1 files located in folders: /home/dhyunp/tensorflow_datasets/mnist/3.0.1.
+Constructing tf.data.Dataset mnist for split test, from /home/dhyunp/tensorflow_datasets/mnist/3.0.1
+{"batch_size": 64, "epochs": 500, "learning_rate": 0.01, "l2_reg": 0.01, "event": "Starting training", "logger": "hw03.training_testing", "level": "info", "timestamp": "2025-09-24T07:52:19.502714Z"}
+{"step": 0, "loss": 56.006866455078125, "accuracy": 0.140625, "event": "Training step", "logger": "hw03.training_testing", "level": "info", "timestamp": "2025-09-24T07:52:19.829864Z"}
+{"step": 100, "loss": 0.3036328852176666, "accuracy": 0.921875, "event": "Training step", "logger": "hw03.training_testing", "level": "info", "timestamp": "2025-09-24T07:52:21.045984Z"}
+{"step": 200, "loss": 0.601828932762146, "accuracy": 0.875, "event": "Training step", "logger": "hw03.training_testing", "level": "info", "timestamp": "2025-09-24T07:52:21.988770Z"}
+{"step": 300, "loss": 0.24624520540237427, "accuracy": 0.984375, "event": "Training step", "logger": "hw03.training_testing", "level": "info", "timestamp": "2025-09-24T07:52:22.924333Z"}
+{"step": 400, "loss": 0.24960461258888245, "accuracy": 0.953125, "event": "Training step", "logger": "hw03.training_testing", "level": "info", "timestamp": "2025-09-24T07:52:23.873671Z"}
+{"event": "Training finished", "logger": "hw03.training_testing", "level": "info", "timestamp": "2025-09-24T07:52:24.811540Z"}
+{"accuracy": 0.953000009059906, "event": "Validation accuracy", "logger": "hw03.training_testing", "level": "info", "timestamp": "2025-09-24T07:52:25.410576Z"}
+{"accuracy": 0.9598000049591064, "event": "Test accuracy", "logger": "hw03.training_testing", "level": "info", "timestamp": "2025-09-24T07:52:26.127463Z"}
