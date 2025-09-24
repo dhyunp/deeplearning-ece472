@@ -73,6 +73,11 @@ def main() -> None:
         wrt=nnx.Param,
     )
 
-    train(model, optimizer, data, settings.training, np_rng)
+    val_accuracy = train(model, optimizer, data, settings.training, np_rng)
     log.debug("Finished Training model")
-    test(model, data)
+
+    if val_accuracy > 0.955:
+        log.info("Achieved target accuracy on validation set", accuracy=val_accuracy)
+        test(model, data)
+    else:
+        log.info("Did not achieve target accuracy on validation set", accuracy=val_accuracy)

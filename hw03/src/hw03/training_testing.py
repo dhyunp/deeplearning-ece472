@@ -44,7 +44,7 @@ def train(
     data: Data,
     settings: TrainingSettings,
     np_rng: np.random.Generator,
-) -> None:
+) -> float:
     """Train the model using SGD."""
     log.info("Starting training", **settings.model_dump())
     bar = trange(settings.epochs)
@@ -62,11 +62,15 @@ def train(
 
         if i % 100 == 0:
             log.info("Training step", step=i, loss=loss, accuracy=accuracy)
+            
+    log.info("Training step", step=settings.epochs, loss=loss, accuracy=accuracy)
     log.info("Training finished")
 
     # test on validation set
     val_accuracy = calc_values(model(data.val_image_set), data.val_label_set)[1]
     log.info("Validation accuracy", accuracy=val_accuracy)
+
+    return val_accuracy
 
 
 def test(

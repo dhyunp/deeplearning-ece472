@@ -18,7 +18,7 @@ class ModelSettings(BaseModel):
     input_width: int = 28
     input_depth: int = 1
     layer_depths: list[int] = [32, 64, 128]
-    layer_kernel_sizes: list[tuple[int, int]] = [(5, 5), (3, 3), (3, 3)]
+    layer_kernel_sizes: list[tuple[int, int]] = [(7, 7), (5, 5), (3, 3)]
     num_classes: int = 10
 
 
