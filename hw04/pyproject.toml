@@ -18,10 +18,13 @@ dependencies = [
     "tensorflow-datasets>=4.9.9",
     "pydantic>=2.11.9",
     "pydantic-settings>=2.11.0",
+    "orbax>=0.1.9",
+    "tensorflow>=2.20.0",
 ]
 
 [project.scripts]
 hw04 = "hw04:main"
+test = "hw04:run_test"
 
 [build-system]
 requires = ["uv_build>=0.8.3,<0.9.0"]

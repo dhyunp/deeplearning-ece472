@@ -2,34 +2,21 @@ import jax
 import structlog
 from flax import nnx
 from jax import numpy as jnp
-import numpy as np
 
 log = structlog.get_logger()
 
+
 class GroupNorm(nnx.Module):
     """A Flax NNX module for Group Normalization."""
-    def __init__(self, *, num_groups: int, num_channels: int, eps: float = 1e-5):
-        self.num_groups = num_groups
-        self.num_channels = num_channels
-        self.eps = eps
-        assert (
-            num_channels % num_groups == 0
-        ), "num_channels must be divisible by num_groups"
-        self.gamma = self.param(
-            "gamma", nnx.initializers.ones, (1, 1, 1, num_channels)
+
+    def __init__(self, *, rngs: nnx.Rngs, num_groups: int, num_features: int):
+        self.norm = nnx.GroupNorm(
+            num_groups=num_groups, num_features=num_features, rngs=rngs
         )
-        self.beta = self.param(
-            "beta", nnx.initializers.zeros, (1, 1, 1, num_channels)
-        )
+
     def __call__(self, x: jax.Array) -> jax.Array:
-        N, H, W, C = x.shape
-        G = self.num_groups
-        x = x.reshape((N, H, W, G, C // G))
-        mean = jnp.mean(x, axis=(1, 2, 4), keepdims=True)
-        var = jnp.var(x, axis=(1, 2, 4), keepdims=True)
-        x = (x - mean) / jnp.sqrt(var + self.eps)
-        x = x.reshape((N, H, W, C))
-        return x * self.gamma + self.beta
+        return self.norm(x)
+
 
 class Conv2d(nnx.Module):
     """A Flax NNX module for a 2D convolutional layer."""
@@ -41,16 +28,20 @@ class Conv2d(nnx.Module):
         in_features: int,
         out_features: int,
         kernel_size: tuple[int, int],
+        strides: int,
     ):
         self.conv = nnx.Conv(
             in_features=in_features,
             out_features=out_features,
             kernel_size=kernel_size,
+            strides=strides,
+            padding="SAME",
             rngs=rngs,
         )
 
     def __call__(self, x: jax.Array) -> jax.Array:
-        return nnx.avg_pool(nnx.relu(self.conv(x)), window_shape=(2, 2), strides=(2, 2))
+        return self.conv(x)
+
 
 class ResidualBlock(nnx.Module):
     """A Flax NNX module for a residual block."""
@@ -58,42 +49,63 @@ class ResidualBlock(nnx.Module):
     def __init__(
         self,
         *,
-        rngs: nnx.Rngs,
+        key: jax.random.PRNGKey,
         in_features: int,
         out_features: int,
         kernel_size: tuple[int, int],
-        num_groups: int = 8,
+        num_groups: int,
+        strides: int,
     ):
-        self.conv1 = nnx.Conv(
+        res_keys = jax.random.split(key, 5)
+
+        self.conv1 = Conv2d(
             in_features=in_features,
             out_features=out_features,
             kernel_size=kernel_size,
-            rngs=rngs,
+            strides=strides,
+            rngs=nnx.Rngs(params=res_keys[0]),
         )
-        self.gn1 = GroupNorm(num_groups=num_groups, num_channels=out_features)
-        self.conv2 = nnx.Conv(
+        self.gn1 = GroupNorm(
+            num_groups=num_groups,
+            num_features=in_features,
+            rngs=nnx.Rngs(params=res_keys[1]),
+        )
+        self.conv2 = Conv2d(
             in_features=out_features,
             out_features=out_features,
             kernel_size=kernel_size,
-            rngs=rngs,
+            strides=1,
+            rngs=nnx.Rngs(params=res_keys[2]),
         )
-        self.gn2 = GroupNorm(num_groups=num_groups, num_channels=out_features)
+        self.gn2 = GroupNorm(
+            num_groups=num_groups,
+            num_features=out_features,
+            rngs=nnx.Rngs(params=res_keys[3]),
+        )
 
-        if in_features != out_features:
-            self.shortcut = nnx.Conv(
+        if (in_features != out_features) or (strides != 1):
+            self.shortcut = Conv2d(
                 in_features=in_features,
                 out_features=out_features,
                 kernel_size=(1, 1),
-                rngs=rngs,
+                strides=strides,
+                rngs=nnx.Rngs(params=res_keys[4]),
             )
         else:
             self.shortcut = lambda x: x  # Identity
 
+        self.activation = jax.nn.relu
+
     def __call__(self, x: jax.Array) -> jax.Array:
         residual = self.shortcut(x)
-        x = nnx.relu(self.gn1(self.conv1(x)))
-        x = self.gn2(self.conv2(x))
-        return nnx.relu(x + residual)
+        fx = self.gn1(x)
+        fx = self.activation(fx)
+        fx = self.conv1(fx)
+        fx = self.gn2(fx)
+        fx = self.activation(fx)
+        fx = self.conv2(fx)
+
+        return residual + fx
 
 
 class Classifier(nnx.Module):
@@ -103,54 +115,53 @@ class Classifier(nnx.Module):
         self,
         *,
         key: jax.random.PRNGKey,
-        input_height: int,
-        input_width: int,
         input_depth: int,
         layer_depths: list[int],
         layer_kernel_sizes: list[tuple[int, int]],
         num_classes: int,
+        num_groups: int,
+        strides: list[int],
     ):
         keys = jax.random.split(key, len(layer_depths) + 2)
         # layer_depths and layer_kernel_sizes must have the same length
         assert len(layer_depths) == len(layer_kernel_sizes)
-        self.conv_layers = []
-        current_depth = input_depth
 
-        for depth, kernel_size, rng_key in zip(
-            layer_depths, layer_kernel_sizes, keys[:-2]
-        ):
-            self.conv_layers.append(
-                Conv2d(
-                    rngs=nnx.Rngs(params=rng_key),
-                    in_features=current_depth,
-                    out_features=depth,
-                    kernel_size=kernel_size,
+        self.start_conv = Conv2d(
+            rngs=nnx.Rngs(params=keys[0]),
+            in_features=input_depth,
+            out_features=layer_depths[0],
+            kernel_size=layer_kernel_sizes[0],
+            strides=strides[0],
+        )
+
+        self.res_layers = nnx.List([])
+
+        for i in range(1, len(layer_depths)):
+            self.res_layers.append(
+                ResidualBlock(
+                    key=keys[i],
+                    in_features=layer_depths[i - 1],
+                    out_features=layer_depths[i],
+                    kernel_size=layer_kernel_sizes[i],
+                    num_groups=num_groups[i],
+                    strides=strides[i],
                 )
             )
-            current_depth = depth
-
-        self.dropout = nnx.Dropout(rate=0.5, rngs=nnx.Rngs(dropout=keys[-2]))
-
-        # Compute the number of features after the conv layers
-        dummy_input = jnp.ones((1, input_height, input_width, input_depth))
-        dummy_output = dummy_input
-        for layer in self.conv_layers:
-            dummy_output = layer(dummy_output)
-        dense_in_features = np.prod(dummy_output.shape[1:])
 
         self.dense = nnx.Linear(
-            in_features=dense_in_features,
+            in_features=layer_depths[-1],
             out_features=num_classes,
             rngs=nnx.Rngs(params=keys[-1]),
         )
 
     def __call__(self, x: jax.Array) -> jax.Array:
         # """Iterates through the CNN layers."""
-        for layer in self.conv_layers:
+        # x = jax.nn.relu(self.start_gn(self.start_conv(x)))
+        x = jax.nn.relu(self.start_conv(x))
+        for layer in self.res_layers:
             x = layer(x)
 
-        x = x.reshape((x.shape[0], -1))
-        x = self.dropout(x)
+        x = jnp.mean(x, axis=(1, 2))
         x = self.dense(x)
 
         return x

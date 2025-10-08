@@ -14,10 +14,12 @@ log = structlog.get_logger()
 
 
 def calc_values(x, y):
-    one_hot_labels = jax.nn.one_hot(y, num_classes=10)
-    loss = optax.softmax_cross_entropy(x, one_hot_labels).mean()
+    loss = optax.softmax_cross_entropy_with_integer_labels(x, y).mean()
     accuracy = jnp.mean(jnp.argmax(x, axis=-1) == y)
-    return [loss, accuracy]
+    _, top_5_indices = jax.lax.top_k(x, k=5)
+    y = y.reshape(-1, 1)
+    top5_accuracy = jnp.mean(jnp.any(top_5_indices == y, axis=-1))
+    return [loss, accuracy, top5_accuracy]
 
 
 @nnx.jit
@@ -30,10 +32,8 @@ def train_step(
         y_hat = model(x)
         return calc_values(y_hat, y)[0]
 
-    model.train()
     loss, grads = nnx.value_and_grad(loss_fn)(model)
     optimizer.update(model, grads)  # In-place update of model parameters
-    model.eval()
     accuracy = calc_values(model(x), y)[1]
     return loss, accuracy
 
@@ -44,7 +44,7 @@ def train(
     data: Data,
     settings: TrainingSettings,
     np_rng: np.random.Generator,
-) -> float:
+) -> list[float]:
     """Train the model using SGD."""
     log.info("Starting training", **settings.model_dump())
     bar = trange(settings.epochs)
@@ -60,17 +60,20 @@ def train(
         bar.set_description(f"Loss @ {i} => {loss:.6f}, Acc @ {accuracy:.6f}")
         bar.refresh()
 
-        if i % 100 == 0:
+        if i % 2500 == 0:
             log.info("Training step", step=i, loss=loss, accuracy=accuracy)
-            
+
     log.info("Training step", step=settings.epochs, loss=loss, accuracy=accuracy)
     log.info("Training finished")
 
     # test on validation set
-    val_accuracy = calc_values(model(data.val_image_set), data.val_label_set)[1]
-    log.info("Validation accuracy", accuracy=val_accuracy)
+    results = calc_values(model(data.test_image_set), data.test_label_set)
+    top1_accuracy = results[1]
+    top5_accuracy = results[2]
+    log.info("Top 1 accuracy", accuracy=top1_accuracy)
+    log.info("Top 5 accuracy", accuracy=top5_accuracy)
 
-    return val_accuracy
+    return [top1_accuracy, top5_accuracy]
 
 
 def test(
@@ -78,5 +81,8 @@ def test(
     data: Data,
 ) -> None:
     """Test the model using test dataset."""
-    test_accuracy = calc_values(model(data.test_image_set), data.test_label_set)[1]
-    log.info("Test accuracy", accuracy=test_accuracy)
+    results = calc_values(model(data.test_image_set), data.test_label_set)
+    top1_accuracy = results[1]
+    top5_accuracy = results[2]
+    log.info("Top 1 accuracy", accuracy=top1_accuracy)
+    log.info("Top 5 accuracy", accuracy=top5_accuracy)
