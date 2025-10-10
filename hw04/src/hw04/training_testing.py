@@ -30,11 +30,11 @@ def train_step(
 
     def loss_fn(model: Classifier):
         y_hat = model(x)
-        return calc_values(y_hat, y)[0]
+        loss, accuracy, _ = calc_values(y_hat, y)
+        return loss, accuracy
 
-    loss, grads = nnx.value_and_grad(loss_fn)(model)
+    (loss, accuracy), grads = nnx.value_and_grad(loss_fn, has_aux=True)(model)
     optimizer.update(model, grads)  # In-place update of model parameters
-    accuracy = calc_values(model(x), y)[1]
     return loss, accuracy
 
 
@@ -56,10 +56,9 @@ def train(
         loss, accuracy = train_step(
             model, optimizer, train_image_batch, train_label_batch
         )
-        # log.debug("Training step", step=i, loss=loss)
+
         bar.set_description(f"Loss @ {i} => {loss:.6f}, Acc @ {accuracy:.6f}")
         bar.refresh()
-
         if i % 2500 == 0:
             log.info("Training step", step=i, loss=loss, accuracy=accuracy)
 

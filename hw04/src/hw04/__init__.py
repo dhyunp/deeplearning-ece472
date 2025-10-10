@@ -24,8 +24,12 @@ where the accuracies were 95.44% and 78.41% for CIFAR-10, and CIFAR-100 respecti
 We will be benchmarking on these values for our system.
 
 Different approaches like data augmentation, hyperparameter adjustments (learning rate, decay, iterations, layer depths etc) were attempted
-but constrained by computational power was a factor.
-In the end, moderate numbers of iterations and layer depths were used to run training for approximately 3 hours. 
+but constrained by computational power+time was the biggest factor.
+Certain hyperparamters would cause the loss value to blow up exponentially, causing the system to perform badly
+In the end, numbers hyperparameters used to run training was settled on, achieving about 
+72% top1-accuracy on CIFAR-10
+50% top5-accuracy on CIFAR-100
+
 """
 
 
@@ -51,12 +55,15 @@ def main() -> None:
 
     log.info("Loaded dataset", dataset=settings.data.dataset_name)
 
+    num_classes = (
+        settings.model.num_classes if settings.data.dataset_name == "cifar10" else 100
+    )
     model = Classifier(
         key=model_key,
         input_depth=settings.model.input_depth,
         layer_depths=settings.model.layer_depths,
         layer_kernel_sizes=settings.model.layer_kernel_sizes,
-        num_classes=settings.model.num_classes,
+        num_classes=num_classes,
         num_groups=settings.model.num_groups,
         strides=settings.model.strides,
     )
@@ -64,7 +71,7 @@ def main() -> None:
     learning_rate_schedule = optax.cosine_decay_schedule(
         init_value=settings.training.learning_rate,
         decay_steps=settings.training.epochs,
-        alpha=0.01,
+        alpha=0.001,
     )
 
     optimizer_chain = optax.chain(
@@ -142,12 +149,15 @@ def run_test() -> None:
 
     log.info("Loaded dataset", dataset=settings.data.dataset_name)
 
+    num_classes = (
+        settings.model.num_classes if settings.data.dataset_name == "cifar10" else 100
+    )
     model = Classifier(
         key=model_key,
         input_depth=settings.model.input_depth,
         layer_depths=settings.model.layer_depths,
         layer_kernel_sizes=settings.model.layer_kernel_sizes,
-        num_classes=settings.model.num_classes,
+        num_classes=num_classes,
         num_groups=settings.model.num_groups,
         strides=settings.model.strides,
     )

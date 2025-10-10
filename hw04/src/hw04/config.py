@@ -9,8 +9,6 @@ class DataSettings(BaseModel):
     """Settings for data generation."""
 
     dataset_name: str = "cifar10"
-    padding: int = 4
-    horizontal_flip: bool = True
     percent_train: int = 90
 
 
@@ -51,8 +49,8 @@ class TrainingSettings(BaseModel):
     """Settings for model training."""
 
     batch_size: int = 128
-    epochs: int = 30000
-    learning_rate: float = 0.0005
+    epochs: int = 12500
+    learning_rate: float = 0.001
     l2_reg: float = 0.0001
     momentum: float = 0.9
 
