@@ -24,10 +24,11 @@ class ModelSettings(BaseModel):
 class TrainingSettings(BaseModel):
     """Settings for model training."""
 
+    k_folds: int = 5
     batch_size: int = 1024
     num_iters: int = 5000
     learning_rate: float = 0.001
-    l2_reg: float = 0.01
+    l2_reg: float = 0.001
 
 
 class PlottingSettings(BaseModel):

@@ -17,8 +17,9 @@ from .training_testing import train, test
 Discussion:
 Implemented a MLP that intakes a word emebedding 384-width vector of the ag news article pass through HuggingFace's SentenceTransformer
 MLP hyperparameters: 512 hidden layer nodes, 2 layers
-Experimented with batch size, number of layers, number of iterations, learning rate
-Performance seemed to top out at 50% accuracy
+Experimented with batch size, number of layers, number of iterations, optimizers, dropout, random batch vs iterative batch selection 
+When trained on single batch, was able to reach 90% accuracy with 0.3 loss
+Performance seemed to top out at 50% accuracy no matter the hyperparameter tuning
 Performed 5-fold cross validations, mean-accuracy of 46-47%
 Test set accuracy of 46.43%
 """
@@ -45,7 +46,7 @@ def main() -> None:
 
     log.info("Loaded dataset", dataset=settings.data.dataset_name)
 
-    kfold = KFold(n_splits=5, shuffle=True, random_state=settings.random_seed)
+    kfold = KFold(n_splits=settings.training.k_folds, shuffle=True, random_state=settings.random_seed)
     fold_accuracies = []
 
     for fold, (train_idx, val_idx) in enumerate(kfold.split(data.train_text_set)):
@@ -56,6 +57,8 @@ def main() -> None:
         val_embeddings = data.train_text_set[val_idx]
         val_labels = data.train_label_set[val_idx]
 
+        log.info("Train/Val split", train_shape=train_embeddings.shape, val_shape=val_embeddings.shape)
+
         model = MLP(
             rngs=nnx.Rngs(params=model_key),
             input_depth=settings.model.input_depth,
@@ -65,10 +68,10 @@ def main() -> None:
             output_activation=nnx.identity,
         )
 
-        learning_rate_schedule = optax.exponential_decay(
+        learning_rate_schedule = optax.cosine_decay_schedule(
             init_value=settings.training.learning_rate,
-            transition_steps=2500,
-            decay_rate=0.1,
+            decay_steps=settings.training.num_iters,
+            alpha=0.001,
         )
 
         optimizer = nnx.Optimizer(

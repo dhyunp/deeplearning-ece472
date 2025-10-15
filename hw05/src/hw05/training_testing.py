@@ -27,7 +27,6 @@ def train_step(model: MLP, optimizer: nnx.Optimizer, x: jnp.ndarray, y: jnp.ndar
     def loss_fn(model: MLP):
         y_hat = model(x)
         loss, accuracy = calc_values(y_hat, y)
-        # loss = optax.softmax_cross_entropy_with_integer_labels(y_hat, y).mean()
 
         return loss, accuracy
 
@@ -69,11 +68,12 @@ def train(
         bar.refresh()
         if i % 500 == 0:
             log.info("Training step", step=i, loss=loss, accuracy=accuracy)
+            log.debug("Predicted labels", predicted=jnp.argmax(model(train_text_batch), axis=-1), true=train_label_batch)
 
     log.info("Training step", step=settings.num_iters, loss=loss, accuracy=accuracy)
     log.info("Training finished")
 
-    plot(losses, accuracies)
+    # plot(losses, accuracies, fold)
 
     # test on validation set
     _, accuracy = calc_values(model(data[2]), data[3])
@@ -90,7 +90,7 @@ def test(
     log.info("Test set accuracy", accuracy=accuracy)
 
 
-def plot(losses, accuracies):
+def plot(losses, accuracies, fold):
     steps = np.arange(len(losses))
     # Create the plot
     fig, ax1 = plt.subplots(figsize=(10, 10), dpi=200)
@@ -116,6 +116,6 @@ def plot(losses, accuracies):
     # Ensure the output directory exists and save the figure
     path = Path("hw05/artifacts")
     path.mkdir(parents=True, exist_ok=True)
-    output_path = path / "training_loss.pdf"
+    output_path = path / f"training_loss_{fold}.pdf"
     plt.savefig(output_path)
     log.info("Saved loss plot", path=str(output_path))
