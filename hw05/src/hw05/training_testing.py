@@ -39,20 +39,25 @@ def train_step(model: MLP, optimizer: nnx.Optimizer, x: jnp.ndarray, y: jnp.ndar
 def train(
     model: MLP,
     optimizer: nnx.Optimizer,
-    data: Data,
+    data: list,
     settings: TrainingSettings,
+    fold: int,
     np_rng: np.random.Generator,
-) -> None:
+) -> float:
     """Train the model using SGD."""
     log.info("Starting training", **settings.model_dump())
     bar = trange(settings.num_iters)
 
+    train_texts = data[0]
+    train_labels = data[1]
+    train_index = np.arange(train_texts.shape[0])
+
     losses = []
     accuracies = []
     for i in bar:
-        train_text_batch, train_label_batch = data.get_batch(
-            np_rng, settings.batch_size
-        )
+        choices = np_rng.choice(train_index, size=settings.batch_size)
+        train_text_batch = train_texts[choices]
+        train_label_batch = train_labels[choices].flatten()
 
         loss, accuracy = train_step(
             model, optimizer, train_text_batch, train_label_batch
@@ -62,8 +67,7 @@ def train(
 
         bar.set_description(f"Loss @ {i} => {loss:.6f}, Acc @ {accuracy:.6f}")
         bar.refresh()
-        if i % 1 == 0:
-            # _, accuracy = calc_values(model(train_text_batch), train_label_batch)
+        if i % 500 == 0:
             log.info("Training step", step=i, loss=loss, accuracy=accuracy)
 
     log.info("Training step", step=settings.num_iters, loss=loss, accuracy=accuracy)
@@ -72,9 +76,9 @@ def train(
     plot(losses, accuracies)
 
     # test on validation set
-    results = calc_values(model(data.val_text_set), data.val_label_set)
-    top1_accuracy = results[1]
-    log.info("Validation Set Top 1 accuracy", accuracy=top1_accuracy)
+    _, accuracy = calc_values(model(data[2]), data[3])
+    log.info("Validation set accuracy", accuracy=accuracy, fold=fold)
+    return accuracy
 
 
 def test(
@@ -82,9 +86,8 @@ def test(
     data: Data,
 ) -> None:
     """Test the model using test dataset."""
-    results = calc_values(model(data.test_text_set), data.test_label_set)
-    top1_accuracy = results[1]
-    log.info("Test Set Top 1 accuracy", accuracy=top1_accuracy)
+    _, accuracy = calc_values(model(data.test_text_set), data.test_label_set)
+    log.info("Test set accuracy", accuracy=accuracy)
 
 
 def plot(losses, accuracies):

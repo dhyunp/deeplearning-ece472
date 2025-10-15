@@ -15,7 +15,6 @@ class Data:
 
     rng: InitVar[np.random.Generator]
     dataset_name: str
-    percent_train: int
     train_text_set: np.ndarray = field(init=False)
     train_label_set: np.ndarray = field(init=False)
     val_text_set: np.ndarray = field(init=False)
@@ -28,13 +27,9 @@ class Data:
         """Generate training and validating data."""
 
         # load data from TF
-        (ag_train, ag_val, ag_test) = tfds.load(
+        (ag_train, ag_test) = tfds.load(
             self.dataset_name,
-            split=[
-                "train[:{percent}%]".format(percent=self.percent_train),
-                "train[{percent}%:]".format(percent=self.percent_train),
-                "test",
-            ],
+            split=["train", "test"],
             shuffle_files=True,
         )
 
@@ -43,13 +38,10 @@ class Data:
             return text, x["label"]
 
         ag_train = ag_train.map(combine_text)
-        ag_val = ag_val.map(combine_text)
         ag_test = ag_test.map(combine_text)
 
         train_text_set = np.stack([x for x, _ in ag_train])
         self.train_label_set = np.stack([y for _, y in ag_train])
-        val_text_set = np.stack([x for x, _ in ag_val])
-        self.val_label_set = np.stack([y for _, y in ag_val])
         test_text_set = np.stack([x for x, _ in ag_test])
         self.test_label_set = np.stack([y for _, y in ag_test])
 
@@ -57,8 +49,6 @@ class Data:
             "Data initialized",
             train_text=train_text_set.shape,
             train_labels=self.train_label_set.shape,
-            val_text=val_text_set.shape,
-            val_labels=self.val_label_set.shape,
             test_text=test_text_set.shape,
             test_labels=self.test_label_set.shape,
         )
@@ -67,8 +57,6 @@ class Data:
             "Sample data",
             train_text=train_text_set[0],
             train_labels=self.train_label_set[0],
-            val_text=val_text_set[0],
-            val_labels=self.val_label_set[0],
             test_text=test_text_set[0],
             test_labels=self.test_label_set[0],
         )
@@ -76,7 +64,6 @@ class Data:
         log.info("Creating word embeddings of the text")
 
         self.train_text_set = create_embeddings(train_text_set)
-        self.val_text_set = create_embeddings(val_text_set)
         self.test_text_set = create_embeddings(test_text_set)
         self.train_index = np.arange(self.train_text_set.shape[0])
 

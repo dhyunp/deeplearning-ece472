@@ -5,12 +5,22 @@ import optax
 import orbax.checkpoint as ocp
 from flax import nnx
 from pathlib import Path
+from sklearn.model_selection import KFold
 
 from .logging import configure_logging
 from .config import load_settings
 from .data import Data
 from .model import MLP
 from .training_testing import train, test
+
+"""
+Discussion:
+Implemented a MLP that intakes a word emebedding 384-width vector of the ag news article pass through HuggingFace's SentenceTransformer
+MLP hyperparameters: 512 hidden layer nodes, 2 layers
+Experimented with batch size, number of layers, number of iterations, learning rate
+Performance seemed to top out at 50% accuracy
+Performed 5-fold cross validations, mean-accuracy of 46-47%
+"""
 
 
 def main() -> None:
@@ -30,37 +40,63 @@ def main() -> None:
     data = Data(
         rng=np_rng,
         dataset_name=settings.data.dataset_name,
-        percent_train=settings.data.percent_train,
     )
 
     log.info("Loaded dataset", dataset=settings.data.dataset_name)
 
-    model = MLP(
-        rngs=nnx.Rngs(params=model_key),
-        input_depth=settings.model.input_depth,
-        hidden_layer_depth=settings.model.layer_depths,
-        num_hidden_layers=settings.model.num_hidden_layers,
-        num_classes=settings.model.num_classes,
-        output_activation=nnx.identity,
-    )
+    kfold = KFold(n_splits=5, shuffle=True, random_state=settings.random_seed)
+    fold_accuracies = []
 
-    learning_rate_schedule = optax.exponential_decay(
-        init_value=settings.training.learning_rate,
-        transition_steps=2500,
-        decay_rate=0.1,
-    )
+    for fold, (train_idx, val_idx) in enumerate(kfold.split(data.train_text_set)):
+        log.info(f"Starting Fold {fold + 1}/5")
 
-    optimizer = nnx.Optimizer(
-        model,
-        optax.adamw(
-            learning_rate=learning_rate_schedule,
-            weight_decay=settings.training.l2_reg,
-        ),
-        wrt=nnx.Param,
-    )
+        train_embeddings = data.train_text_set[train_idx]
+        train_labels = data.train_label_set[train_idx]
+        val_embeddings = data.train_text_set[val_idx]
+        val_labels = data.train_label_set[val_idx]
 
-    train(model, optimizer, data, settings.training, np_rng)
-    log.info("Finished Training model")
+        model = MLP(
+            rngs=nnx.Rngs(params=model_key),
+            input_depth=settings.model.input_depth,
+            hidden_layer_depth=settings.model.layer_depths,
+            num_hidden_layers=settings.model.num_hidden_layers,
+            num_classes=settings.model.num_classes,
+            output_activation=nnx.identity,
+        )
+
+        learning_rate_schedule = optax.exponential_decay(
+            init_value=settings.training.learning_rate,
+            transition_steps=2500,
+            decay_rate=0.1,
+        )
+
+        optimizer = nnx.Optimizer(
+            model,
+            optax.adamw(
+                learning_rate=learning_rate_schedule,
+                weight_decay=settings.training.l2_reg,
+            ),
+            wrt=nnx.Param,
+        )
+
+        val_accuracy = train(
+            model,
+            optimizer,
+            [train_embeddings, train_labels, val_embeddings, val_labels],
+            settings.training,
+            fold,
+            np_rng,
+        )
+        log.info(f"Fold {fold + 1} Validation Accuracy: {val_accuracy:.4f}")
+        fold_accuracies.append(val_accuracy)
+
+    mean_accuracy = np.mean(fold_accuracies)
+    std_accuracy = np.std(fold_accuracies)
+    log.info(
+        "Cross-Validation Finished",
+        mean_accuracy=f"{mean_accuracy:.4f}",
+        std_deviation=f"{std_accuracy:.4f}",
+    )
 
     save_dir = settings.saving.output_dir
     log.info("savedir", save_dir=save_dir)
@@ -90,7 +126,6 @@ def run_test() -> None:
     data = Data(
         rng=np_rng,
         dataset_name=settings.data.dataset_name,
-        percent_train=settings.data.percent_train,
     )
 
     log.info("Loaded dataset", dataset=settings.data.dataset_name)
@@ -101,6 +136,7 @@ def run_test() -> None:
         hidden_layer_depth=settings.model.layer_depths,
         num_hidden_layers=settings.model.num_hidden_layers,
         num_classes=settings.model.num_classes,
+        output_activation=nnx.identity,
     )
 
     # recreate model
