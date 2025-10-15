@@ -66,7 +66,7 @@ def train(
     log.info("Training finished")
 
     # test on validation set
-    results = calc_values(model(data.test_image_set), data.test_label_set)
+    results = calc_values(model(data.val_image_set), data.val_label_set)
     top1_accuracy = results[1]
     top5_accuracy = results[2]
     log.info("Top 1 accuracy", accuracy=top1_accuracy)
