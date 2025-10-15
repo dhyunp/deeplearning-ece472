@@ -20,6 +20,7 @@ MLP hyperparameters: 512 hidden layer nodes, 2 layers
 Experimented with batch size, number of layers, number of iterations, learning rate
 Performance seemed to top out at 50% accuracy
 Performed 5-fold cross validations, mean-accuracy of 46-47%
+Test set accuracy of 46.43%
 """
 
 
