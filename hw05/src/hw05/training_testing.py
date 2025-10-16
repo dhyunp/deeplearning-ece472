@@ -47,28 +47,28 @@ def train(
     log.info("Starting training", **settings.model_dump())
     bar = trange(settings.num_iters)
 
-    train_texts = data[0]
+    train_tokens = data[0]
     train_labels = data[1]
-    train_index = np.arange(train_texts.shape[0])
+    train_index = np.arange(train_tokens.shape[0])
 
     losses = []
     accuracies = []
     for i in bar:
         choices = np_rng.choice(train_index, size=settings.batch_size)
-        train_text_batch = train_texts[choices]
-        train_label_batch = train_labels[choices].flatten()
-
+        train_token_batch = train_tokens[choices]
+        train_label_batch = train_labels[choices]
+        
         loss, accuracy = train_step(
-            model, optimizer, train_text_batch, train_label_batch
+            model, optimizer, train_token_batch, train_label_batch
         )
         losses.append(loss)
         accuracies.append(accuracy)
 
         bar.set_description(f"Loss @ {i} => {loss:.6f}, Acc @ {accuracy:.6f}")
         bar.refresh()
-        if i % 500 == 0:
+        if i % 1000 == 0:
             log.info("Training step", step=i, loss=loss, accuracy=accuracy)
-            log.debug("Predicted labels", predicted=jnp.argmax(model(train_text_batch), axis=-1), true=train_label_batch)
+            log.debug("Predicted labels", predicted=jnp.argmax(model(train_token_batch), axis=-1), true=train_label_batch)
 
     log.info("Training step", step=settings.num_iters, loss=loss, accuracy=accuracy)
     log.info("Training finished")
@@ -119,3 +119,4 @@ def plot(losses, accuracies, fold):
     output_path = path / f"training_loss_{fold}.pdf"
     plt.savefig(output_path)
     log.info("Saved loss plot", path=str(output_path))
+    plt.close()

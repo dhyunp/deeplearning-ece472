@@ -72,14 +72,20 @@ class MLP(nnx.Module):
         self,
         *,
         rngs: nnx.Rngs,
-        input_depth: int,
+        vocab_size: int,
+        embedding_dim: int,        
         hidden_layer_depth: int,
         num_hidden_layers: int,
         num_classes: int,
-        output_activation: nnx.identity,
     ):
+        self.embedding = nnx.Embed(
+            num_embeddings=vocab_size,
+            features=embedding_dim,
+            rngs=rngs,
+        )
+
         self.input_layer = GLU(
-            input_layer_depth=input_depth,
+            input_layer_depth=embedding_dim,
             output_layer_depth=hidden_layer_depth,
             rngs=rngs,
         )
@@ -91,13 +97,13 @@ class MLP(nnx.Module):
         )
 
         self.output_layer = nnx.Linear(hidden_layer_depth, num_classes, rngs=rngs)
-        self.output_activation = output_activation
 
     def __call__(self, x: jax.Array) -> jax.Array:
-        # """Iterates through the MLP layers."""
-
+        """Iterates through the MLP layers."""
+        x = self.embedding(x)
+        x = jnp.mean(x, axis=1)
+        
         x = self.input_layer(x)
         x = self.hidden_layers(x)
         x = self.output_layer(x)
-        x = self.output_activation(x)
         return x

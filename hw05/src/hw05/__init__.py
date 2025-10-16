@@ -16,12 +16,11 @@ from .training_testing import train, test
 """
 Discussion:
 Implemented a MLP that intakes a word emebedding 384-width vector of the ag news article pass through HuggingFace's SentenceTransformer
-MLP hyperparameters: 512 hidden layer nodes, 2 layers
-Experimented with batch size, number of layers, number of iterations, optimizers, dropout, random batch vs iterative batch selection 
-When trained on single batch, was able to reach 90% accuracy with 0.3 loss
-Performance seemed to top out at 50% accuracy no matter the hyperparameter tuning
-Performed 5-fold cross validations, mean-accuracy of 46-47%
-Test set accuracy of 46.43%
+MLP hyperparameters: 64 hidden layer nodes, 2 layers, 128 embedding dimensions, batch size 128
+Model performed very poorly with accuracy of 46% and loss of 1.2, likely due to using SentenceTransformer
+Implementing custom word embedding matrix peformed far better, likely due to the limited word domain rather than the large pre-training done on SentenceTransformer
+5 fold cross validation showed 91.37% mean accuracy on validation set
+Test set accuracy of 90.26%
 """
 
 
@@ -42,6 +41,8 @@ def main() -> None:
     data = Data(
         rng=np_rng,
         dataset_name=settings.data.dataset_name,
+        vocab_size=settings.data.vocab_size,
+        max_seq_length=settings.data.max_seq_length,
     )
 
     log.info("Loaded dataset", dataset=settings.data.dataset_name)
@@ -50,23 +51,27 @@ def main() -> None:
     fold_accuracies = []
 
     for fold, (train_idx, val_idx) in enumerate(kfold.split(data.train_text_set)):
-        log.info(f"Starting Fold {fold + 1}/5")
+        log.info(f"Starting Fold {fold + 1}/{settings.training.k_folds}")
 
-        train_embeddings = data.train_text_set[train_idx]
+        train_tokens = data.train_text_set[train_idx]
         train_labels = data.train_label_set[train_idx]
-        val_embeddings = data.train_text_set[val_idx]
+        val_tokens = data.train_text_set[val_idx]
         val_labels = data.train_label_set[val_idx]
 
-        log.info("Train/Val split", train_shape=train_embeddings.shape, val_shape=val_embeddings.shape)
+        log.info("Train/Val split", train_shape=train_tokens.shape, val_shape=val_tokens.shape)
 
         model = MLP(
             rngs=nnx.Rngs(params=model_key),
-            input_depth=settings.model.input_depth,
+            vocab_size=settings.model.vocab_size,
+            embedding_dim=settings.model.embedding_dim,
             hidden_layer_depth=settings.model.layer_depths,
             num_hidden_layers=settings.model.num_hidden_layers,
             num_classes=settings.model.num_classes,
-            output_activation=nnx.identity,
         )
+        
+        params = nnx.state(model, nnx.Param)
+        total_params = sum(np.prod(x.shape) for x in jax.tree_util.tree_leaves(params))
+        log.info(f"Total parameters: {total_params:,}")
 
         learning_rate_schedule = optax.cosine_decay_schedule(
             init_value=settings.training.learning_rate,
@@ -86,7 +91,7 @@ def main() -> None:
         val_accuracy = train(
             model,
             optimizer,
-            [train_embeddings, train_labels, val_embeddings, val_labels],
+            [train_tokens, train_labels, val_tokens, val_labels],
             settings.training,
             fold,
             np_rng,
@@ -130,17 +135,19 @@ def run_test() -> None:
     data = Data(
         rng=np_rng,
         dataset_name=settings.data.dataset_name,
+        vocab_size=settings.data.vocab_size,
+        max_seq_length=settings.data.max_seq_length,
     )
 
     log.info("Loaded dataset", dataset=settings.data.dataset_name)
 
     model = MLP(
         rngs=nnx.Rngs(params=model_key),
-        input_depth=settings.model.input_depth,
+        vocab_size=settings.model.vocab_size,
+        embedding_dim=settings.model.embedding_dim,
         hidden_layer_depth=settings.model.layer_depths,
         num_hidden_layers=settings.model.num_hidden_layers,
         num_classes=settings.model.num_classes,
-        output_activation=nnx.identity,
     )
 
     # recreate model

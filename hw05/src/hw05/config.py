@@ -10,13 +10,17 @@ class DataSettings(BaseModel):
 
     dataset_name: str = "ag_news_subset"
     percent_train: int = 90
+    vocab_size: int = 10000
+    max_seq_length: int = 50
 
 
 class ModelSettings(BaseModel):
     """Settings for model architecture."""
 
-    input_depth: int = 384  # all-MiniLM-L6-v2 outputs size 384 vector
-    layer_depths: int = 512
+    vocab_size: int = 10000
+    embedding_dim: int = 128
+    max_seq_length: int = 50  # Should match DataSettings.max_seq_length
+    layer_depths: int = 64
     num_hidden_layers: int = 2
     num_classes: int = 4  # World, Sports, Business, Sci/Tech
 
@@ -25,10 +29,10 @@ class TrainingSettings(BaseModel):
     """Settings for model training."""
 
     k_folds: int = 5
-    batch_size: int = 1024
-    num_iters: int = 5000
+    batch_size: int = 128
+    num_iters: int = 10000
     learning_rate: float = 0.001
-    l2_reg: float = 0.001
+    l2_reg: float = 0.0001
 
 
 class PlottingSettings(BaseModel):
