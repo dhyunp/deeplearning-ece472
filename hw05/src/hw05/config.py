@@ -19,7 +19,7 @@ class ModelSettings(BaseModel):
 
     vocab_size: int = 10000
     embedding_dim: int = 128
-    max_seq_length: int = 50  # Should match DataSettings.max_seq_length
+    max_seq_length: int = 50
     layer_depths: int = 64
     num_hidden_layers: int = 2
     num_classes: int = 4  # World, Sports, Business, Sci/Tech
