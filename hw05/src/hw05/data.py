@@ -40,7 +40,6 @@ class Data:
         ag_train = ag_train.map(combine_text)
         ag_test = ag_test.map(combine_text)
 
-        # Convert to numpy arrays
         train_texts = [x.numpy().decode('utf-8') for x, _ in ag_train]
         self.train_label_set = np.array([y for _, y in ag_train])
         test_texts = [x.numpy().decode('utf-8') for x, _ in ag_test]
@@ -57,7 +56,6 @@ class Data:
         log.info("Building vocabulary")
         self.build_vocabulary(train_texts)
         
-        # Tokenize and pad sequences
         log.info("Tokenizing text")
         self.train_text_set = self.tokenize_texts(train_texts)
         self.test_text_set = self.tokenize_texts(test_texts)
@@ -81,7 +79,6 @@ class Data:
         
         most_common = word_counts.most_common(self.vocab_size - 2)
         
-        # Create word to index mapping
         self.word_to_idx = {
             '<PAD>': 0,
             '<UNK>': 1,
@@ -98,14 +95,14 @@ class Data:
         
         for text in texts:
             words = text.lower().split()
-            # Convert words to indices
-            indices = [self.word_to_idx.get(word, 1) for word in words]  # 1 is <UNK>
+
+            # Convert words to indices, 0 is pad, 1 is unknown
+            indices = [self.word_to_idx.get(word, 1) for word in words]
             
-            # Truncate or pad to max_seq_length
             if len(indices) > self.max_seq_length:
                 indices = indices[:self.max_seq_length]
             else:
-                indices.extend([0] * (self.max_seq_length - len(indices)))  # 0 is <PAD>
+                indices.extend([0] * (self.max_seq_length - len(indices)))
             
             tokenized.append(indices)
         
