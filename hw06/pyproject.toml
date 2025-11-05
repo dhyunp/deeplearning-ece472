@@ -1,0 +1,29 @@
+# pyproject.toml.jinja
+
+[project]
+name = "hw06"
+version = "0.1.0"
+description = "Implement a MultiHeadAttention class and a TransformerBlock class."
+readme = "README.md"
+authors = [
+    { name = "Donghyun Park", email = "donghyun.park@cooper.edu" }
+]
+requires-python = ">=3.13"
+dependencies = [
+    "structlog",
+    "rich",
+    "numpy",
+    "jax",
+    "flax",
+    "pydantic>=2.12.3",
+    "pydantic-settings>=2.11.0",
+    "orbax>=0.1.9",
+    "matplotlib>=3.10.7",
+]
+
+[project.scripts]
+hw06 = "hw06:main"
+
+[build-system]
+requires = ["uv_build>=0.8.3,<0.9.0"]
+build-backend = "uv_build"
