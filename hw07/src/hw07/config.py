@@ -19,6 +19,7 @@ class ModelSettings(BaseModel):
     num_outputs: int = 1
     num_hidden_layers: int = 4
     hidden_layer_width: int = 128
+    latent_dim: int = 2048
 
 
 class TrainingSettings(BaseModel):
@@ -28,6 +29,8 @@ class TrainingSettings(BaseModel):
     num_iters: int = 20000
     learning_rate: float = 0.01
     l2_reg: float = 0.01
+    lambda_sparsity: float = 0.001
+    sae_learning_rate: float = 0.01
 
 
 class PlottingSettings(BaseModel):
@@ -35,7 +38,7 @@ class PlottingSettings(BaseModel):
 
     figsize: Tuple[int, int] = (10, 10)
     dpi: int = 200
-    output_dir: Path = Path("hw02/artifacts")
+    output_dir: Path = Path("hw07/artifacts")
 
 
 class AppSettings(BaseSettings):
